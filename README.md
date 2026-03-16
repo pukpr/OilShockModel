@@ -150,6 +150,16 @@ and the associated blog at https://geoenergymath.com/.
 
 ---
 
+## AI content
+
+Note that the above was initially created by GitHub Copilot.  An alternate implementation 
+```
+oil_shock_model_claude.py
+```
+
+was created by Claude Code as described in the post https://geoenergymath.com/2026/03/15/claude-code-oil-shock-model/
+
+
 ## License
 
 See repository licence file.
