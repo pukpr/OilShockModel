@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oil Shock Model — Interactive Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root, [data-theme="dark"] {
+  --color-bg:           #0e0f11;
+  --color-surface:      #141518;
+  --color-surface-2:    #1a1c21;
+  --color-surface-3:    #22252c;
+  --color-border:       rgba(255,255,255,0.08);
+  --color-divider:      rgba(255,255,255,0.05);
+  --color-text:         #e8eaf0;
+  --color-text-muted:   #8a8fa8;
+  --color-text-faint:   #4a4e63;
+  --color-primary:      #f0a500;
+  --color-primary-dim:  rgba(240,165,0,0.15);
+  --color-primary-glow: rgba(240,165,0,0.06);
+  --color-discovery:    #4fc3f7;
+  --color-fallow:       #ffd54f;
+  --color-construction: #ce93d8;
+  --color-producing:    #a5d6a7;
+  --color-production:   #ef5350;
+  --color-observed:     rgba(120,140,200,0.6);
+  --color-accent2:      #26c6da;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,0.6);
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --text-xs: clamp(0.7rem, 0.65rem + 0.25vw, 0.8rem);
+  --text-sm: clamp(0.8rem, 0.75rem + 0.25vw, 0.9rem);
+  --text-base: clamp(0.9rem, 0.85rem + 0.25vw, 1rem);
+  --text-lg: clamp(1rem, 0.9rem + 0.5vw, 1.2rem);
+  --text-xl: clamp(1.2rem, 1rem + 0.8vw, 1.5rem);
+  --text-2xl: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem;
+  --space-12: 3rem; --space-16: 4rem;
+  --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="light"] {
+  --color-bg:           #f5f5f0;
+  --color-surface:      #ffffff;
+  --color-surface-2:    #f9f9f6;
+  --color-surface-3:    #f0f0eb;
+  --color-border:       rgba(0,0,0,0.1);
+  --color-divider:      rgba(0,0,0,0.06);
+  --color-text:         #1a1c21;
+  --color-text-muted:   #5a5e72;
+  --color-text-faint:   #a0a4b8;
+  --color-primary:      #b87a00;
+  --color-primary-dim:  rgba(184,122,0,0.12);
+  --color-primary-glow: rgba(184,122,0,0.05);
+  --color-discovery:    #0277bd;
+  --color-fallow:       #f57f17;
+  --color-construction: #7b1fa2;
+  --color-producing:    #2e7d32;
+  --color-production:   #c62828;
+  --color-observed:     rgba(80,100,160,0.5);
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,0.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;}
+body{font-family:var(--font-body);font-size:var(--text-base);color:var(--color-text);background:var(--color-bg);min-height:100dvh;line-height:1.6;}
+img,svg{display:block;max-width:100%;}
+button{cursor:pointer;border:none;background:none;font:inherit;color:inherit;}
+input[type=range]{cursor:pointer;}
+
+/* Layout */
+.app-shell{display:grid;grid-template-rows:auto 1fr;min-height:100dvh;}
+
+/* Header */
+header{background:var(--color-surface);border-bottom:1px solid var(--color-border);padding:var(--space-4) var(--space-6);display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);position:sticky;top:0;z-index:100;box-shadow:var(--shadow-md);}
+.header-brand{display:flex;align-items:center;gap:var(--space-3);}
+.logo-svg{flex-shrink:0;}
+.header-title{font-size:var(--text-lg);font-weight:700;letter-spacing:-0.02em;}
+.header-subtitle{font-size:var(--text-xs);color:var(--color-text-muted);margin-top:2px;}
+.header-actions{display:flex;align-items:center;gap:var(--space-2);}
+.btn-icon{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;color:var(--color-text-muted);transition:background var(--transition),color var(--transition);}
+.btn-icon:hover{background:var(--color-surface-2);color:var(--color-text);}
+
+/* Main */
+main{display:grid;grid-template-columns:320px 1fr;gap:0;overflow:hidden;height:calc(100dvh - 65px);}
+
+/* Sidebar */
+.sidebar{background:var(--color-surface);border-right:1px solid var(--color-border);overflow-y:auto;display:flex;flex-direction:column;}
+.sidebar-section{padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-divider);}
+.sidebar-section:last-child{border-bottom:none;}
+.section-label{font-size:var(--text-xs);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-text-faint);margin-bottom:var(--space-4);}
+.param-group{display:flex;flex-direction:column;gap:var(--space-4);}
+.param-row{display:flex;flex-direction:column;gap:var(--space-2);}
+.param-header{display:flex;justify-content:space-between;align-items:baseline;}
+.param-label{font-size:var(--text-sm);color:var(--color-text-muted);font-weight:500;}
+.param-value{font-family:var(--font-mono);font-size:var(--text-sm);font-weight:600;color:var(--color-primary);}
+.param-unit{font-size:var(--text-xs);color:var(--color-text-faint);margin-left:2px;}
+input[type=range]{width:100%;height:4px;-webkit-appearance:none;appearance:none;background:var(--color-surface-3);border-radius:2px;outline:none;transition:background var(--transition);}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:var(--color-primary);cursor:pointer;transition:transform var(--transition),box-shadow var(--transition);}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.2);box-shadow:0 0 0 4px var(--color-primary-dim);}
+input[type=range]:focus-visible{outline:2px solid var(--color-primary);outline-offset:3px;border-radius:2px;}
+
+/* Pulse cards */
+.pulse-cards{display:flex;flex-direction:column;gap:var(--space-3);}
+.pulse-card{background:var(--color-surface-2);border-radius:var(--radius-lg);padding:var(--space-4);border:1px solid var(--color-border);position:relative;}
+.pulse-card-header{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-4);}
+.pulse-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.pulse-title{font-size:var(--text-sm);font-weight:600;}
+.pulse-card .param-group{gap:var(--space-3);}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:600;transition:background var(--transition),color var(--transition),box-shadow var(--transition);cursor:pointer;border:none;}
+.btn-primary{background:var(--color-primary);color:#000;box-shadow:0 2px 8px rgba(240,165,0,0.3);}
+.btn-primary:hover{filter:brightness(1.1);box-shadow:0 4px 16px rgba(240,165,0,0.4);}
+.btn-ghost{background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);}
+.btn-ghost:hover{background:var(--color-surface-2);color:var(--color-text);}
+.btn-row{display:flex;gap:var(--space-2);flex-wrap:wrap;}
+.btn-sm{padding:var(--space-1) var(--space-3);font-size:var(--text-xs);}
+
+/* Chart area */
+.chart-area{display:flex;flex-direction:column;background:var(--color-bg);overflow-y:auto;}
+.chart-tabs{display:flex;gap:var(--space-1);padding:var(--space-4) var(--space-6) 0;border-bottom:1px solid var(--color-border);background:var(--color-surface);position:sticky;top:0;z-index:50;}
+.tab-btn{padding:var(--space-2) var(--space-4);border-radius:var(--radius-md) var(--radius-md) 0 0;font-size:var(--text-sm);font-weight:500;color:var(--color-text-muted);background:transparent;border:1px solid transparent;border-bottom:none;margin-bottom:-1px;transition:all var(--transition);}
+.tab-btn.active{background:var(--color-bg);color:var(--color-text);border-color:var(--color-border);font-weight:700;}
+.tab-btn:hover:not(.active){background:var(--color-surface-2);color:var(--color-text);}
+
+.tab-panel{display:none;padding:var(--space-6);}
+.tab-panel.active{display:flex;flex-direction:column;gap:var(--space-6);}
+
+/* Chart cards */
+.chart-card{background:var(--color-surface);border-radius:var(--radius-xl);border:1px solid var(--color-border);padding:var(--space-5);box-shadow:var(--shadow-md);}
+.chart-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);margin-bottom:var(--space-4);}
+.chart-card-title{font-size:var(--text-lg);font-weight:700;letter-spacing:-0.01em;}
+.chart-card-desc{font-size:var(--text-xs);color:var(--color-text-muted);margin-top:2px;max-width:60ch;}
+.chart-canvas-wrap{position:relative;width:100%;}
+.chart-canvas-wrap canvas{width:100%!important;}
+
+/* Legend */
+.chart-legend{display:flex;flex-wrap:wrap;gap:var(--space-3) var(--space-5);margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid var(--color-divider);}
+.legend-item{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);}
+.legend-line{width:20px;height:3px;border-radius:2px;flex-shrink:0;}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4);}
+.stat-card{background:var(--color-surface);border-radius:var(--radius-lg);border:1px solid var(--color-border);padding:var(--space-4) var(--space-5);}
+.stat-label{font-size:var(--text-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:var(--space-1);}
+.stat-value{font-size:var(--text-xl);font-weight:700;font-family:var(--font-mono);color:var(--color-primary);}
+.stat-sub{font-size:var(--text-xs);color:var(--color-text-faint);margin-top:2px;}
+
+/* Info panel */
+.info-box{background:var(--color-primary-glow);border:1px solid var(--color-primary-dim);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);font-size:var(--text-sm);color:var(--color-text-muted);line-height:1.7;}
+.info-box strong{color:var(--color-text);}
+.info-box .equation{font-family:var(--font-mono);font-size:var(--text-xs);background:var(--color-surface);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);margin:var(--space-2) 0;color:var(--color-primary);display:block;}
+
+/* About tab */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-5);}
+.about-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-xl);padding:var(--space-5);}
+.about-card h3{font-size:var(--text-lg);font-weight:700;margin-bottom:var(--space-3);}
+.about-card p{font-size:var(--text-sm);color:var(--color-text-muted);line-height:1.7;margin-bottom:var(--space-3);}
+.about-card p:last-child{margin-bottom:0;}
+.stage-flow{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin:var(--space-3) 0;}
+.stage-box{background:var(--color-surface-2);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);font-size:var(--text-xs);font-weight:700;border:1px solid var(--color-border);}
+.stage-arrow{color:var(--color-text-faint);font-size:1.2rem;}
+
+/* Tooltip */
+.tooltip-wrap{position:relative;display:inline-block;}
+.tooltip-trigger{width:16px;height:16px;border-radius:50%;background:var(--color-surface-3);color:var(--color-text-faint);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:help;}
+.tooltip-content{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--color-surface-3);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);font-size:var(--text-xs);color:var(--color-text-muted);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity var(--transition);z-index:200;box-shadow:var(--shadow-md);}
+.tooltip-trigger:hover + .tooltip-content,.tooltip-trigger:focus + .tooltip-content{opacity:1;}
+
+/* Responsive */
+@media(max-width:900px){
+  main{grid-template-columns:1fr;height:auto;}
+  .sidebar{max-height:50vh;border-right:none;border-bottom:1px solid var(--color-border);}
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .about-grid{grid-template-columns:1fr;}
+}
+@media(max-width:600px){
+  main{grid-template-columns:1fr;}
+  .stats-row{grid-template-columns:1fr 1fr;}
+  header{padding:var(--space-3) var(--space-4);}
+  .tab-panel{padding:var(--space-4);}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:0.01ms!important;animation-duration:0.01ms!important;}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- HEADER -->
+<header>
+  <div class="header-brand">
+    <svg class="logo-svg" width="36" height="36" viewBox="0 0 36 36" fill="none" aria-label="Oil Shock Model">
+      <rect width="36" height="36" rx="8" fill="var(--color-primary)"/>
+      <path d="M6 26 Q10 12 14 20 Q18 28 22 10 Q26 2 30 18" stroke="#000" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <circle cx="22" cy="10" r="3" fill="#000" opacity="0.8"/>
+    </svg>
+    <div>
+      <div class="header-title">Oil Shock Model</div>
+      <div class="header-subtitle">Interactive Compartmental Production Simulator</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-icon" data-theme-toggle aria-label="Toggle theme" title="Toggle light/dark mode">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <a href="https://github.com/pukpr/OilShockModel" target="_blank" rel="noopener noreferrer" class="btn-icon" aria-label="GitHub repository" title="View source on GitHub">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+    </a>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" aria-label="Model parameters">
+
+    <!-- Delay Times -->
+    <div class="sidebar-section">
+      <div class="section-label">Delay Parameters (τ)</div>
+      <div class="param-group">
+        <div class="param-row">
+          <div class="param-header">
+            <span class="param-label">τ<sub>f</sub> — Fallow delay
+              <span class="tooltip-wrap"><button class="tooltip-trigger" tabindex="0">?</button><span class="tooltip-content">Time between discovery and start of development</span></span>
+            </span>
+            <span><span class="param-value" id="val-tauf">5.0</span><span class="param-unit">yr</span></span>
+          </div>
+          <input type="range" id="tau-f" min="1" max="30" step="0.5" value="5" aria-label="Fallow delay">
+        </div>
+        <div class="param-row">
+          <div class="param-header">
+            <span class="param-label">τ<sub>c</sub> — Construction delay
+              <span class="tooltip-wrap"><button class="tooltip-trigger" tabindex="0">?</button><span class="tooltip-content">Time to drill wells and build infrastructure</span></span>
+            </span>
+            <span><span class="param-value" id="val-tauc">3.0</span><span class="param-unit">yr</span></span>
+          </div>
+          <input type="range" id="tau-c" min="0.5" max="20" step="0.5" value="3" aria-label="Construction delay">
+        </div>
+        <div class="param-row">
+          <div class="param-header">
+            <span class="param-label">τ<sub>x</sub> — Extraction time
+              <span class="tooltip-wrap"><button class="tooltip-trigger" tabindex="0">?</button><span class="tooltip-content">Mean time to deplete producing reserves</span></span>
+            </span>
+            <span><span class="param-value" id="val-taux">30.0</span><span class="param-unit">yr</span></span>
+          </div>
+          <input type="range" id="tau-x" min="5" max="80" step="1" value="30" aria-label="Extraction time">
+        </div>
+      </div>
+    </div>
+
+    <!-- Discovery Pulses -->
+    <div class="sidebar-section">
+      <div class="section-label">Discovery Pulses</div>
+      <div class="pulse-cards">
+
+        <!-- Pulse 1 -->
+        <div class="pulse-card">
+          <div class="pulse-card-header">
+            <div class="pulse-dot" style="background:#4fc3f7;"></div>
+            <span class="pulse-title">Pulse 1 — Conventional Onshore</span>
+          </div>
+          <div class="param-group">
+            <div class="param-row">
+              <div class="param-header">
+                <span class="param-label">Peak year t₀</span>
+                <span><span class="param-value" id="val-p1-t0">1945</span></span>
+              </div>
+              <input type="range" id="p1-t0" min="1900" max="2000" step="1" value="1945" aria-label="Pulse 1 peak year">
+            </div>
+            <div class="param-row">
+              <div class="param-header">
+                <span class="param-label">Growth rate k</span>
+                <span><span class="param-value" id="val-p1-k">0.12</span><span class="param-unit">1/yr</span></span>
+              </div>
+              <input type="range" id="p1-k" min="0.01" max="1.0" step="0.01" value="0.12" aria-label="Pulse 1 growth rate">
+            </div>
+            <div class="param-row">
+              <div class="param-header">
+                <span class="param-label">Total reserves</span>
+                <span><span class="param-value" id="val-p1-scale">200</span><span class="param-unit">Gb</span></span>
+              </div>
+              <input type="range" id="p1-scale" min="10" max="500" step="5" value="200" aria-label="Pulse 1 scale">
+            </div>
+          </div>
+        </div>
+
+        <!-- Pulse 2 -->
+        <div class="pulse-card">
+          <div class="pulse-card-header">
+            <div class="pulse-dot" style="background:#ce93d8;"></div>
+            <span class="pulse-title">Pulse 2 — Offshore / Shale</span>
+          </div>
+          <div class="param-group">
+            <div class="param-row">
+              <div class="param-header">
+                <span class="param-label">Peak year t₀</span>
+                <span><span class="param-value" id="val-p2-t0">2008</span></span>
+              </div>
+              <input type="range" id="p2-t0" min="1950" max="2050" step="1" value="2008" aria-label="Pulse 2 peak year">
+            </div>
+            <div class="param-row">
+              <div class="param-header">
+                <span class="param-label">Growth rate k</span>
+                <span><span class="param-value" id="val-p2-k">0.45</span><span class="param-unit">1/yr</span></span>
+              </div>
+              <input type="range" id="p2-k" min="0.01" max="1.0" step="0.01" value="0.45" aria-label="Pulse 2 growth rate">
+            </div>
+            <div class="param-row">
+              <div class="param-header">
+                <span class="param-label">Total reserves</span>
+                <span><span class="param-value" id="val-p2-scale">150</span><span class="param-unit">Gb</span></span>
+              </div>
+              <input type="range" id="p2-scale" min="10" max="500" step="5" value="150" aria-label="Pulse 2 scale">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- View options -->
+    <div class="sidebar-section">
+      <div class="section-label">View Range</div>
+      <div class="param-group">
+        <div class="param-row">
+          <div class="param-header">
+            <span class="param-label">Start year</span>
+            <span><span class="param-value" id="val-yr-start">1900</span></span>
+          </div>
+          <input type="range" id="yr-start" min="1850" max="1960" step="5" value="1900" aria-label="Start year">
+        </div>
+        <div class="param-row">
+          <div class="param-header">
+            <span class="param-label">End year</span>
+            <span><span class="param-value" id="val-yr-end">2060</span></span>
+          </div>
+          <input type="range" id="yr-end" min="2000" max="2150" step="5" value="2060" aria-label="End year">
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="sidebar-section">
+      <div class="btn-row">
+        <button class="btn btn-primary btn-sm" id="btn-reset" title="Reset to US fitted defaults">Reset to US Fit</button>
+        <button class="btn btn-ghost btn-sm" id="btn-export" title="Export model data as CSV">Export CSV</button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- CHART AREA -->
+  <div class="chart-area">
+
+    <div class="chart-tabs" role="tablist" aria-label="Chart views">
+      <button class="tab-btn active" role="tab" aria-selected="true" data-tab="production">Production</button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="compartments">Compartments</button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="discovery">Discovery</button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="about">About</button>
+    </div>
+
+    <!-- TAB: Production -->
+    <div class="tab-panel active" id="tab-production" role="tabpanel">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Peak Production</div>
+          <div class="stat-value" id="stat-peak-prod">—</div>
+          <div class="stat-sub" id="stat-peak-year">Gb/year</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Peak Year</div>
+          <div class="stat-value" id="stat-peak-yr">—</div>
+          <div class="stat-sub">Model peak</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cumulative (to 2023)</div>
+          <div class="stat-value" id="stat-cumulative">—</div>
+          <div class="stat-sub">Gigabarrels</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Remaining (2024–2060)</div>
+          <div class="stat-value" id="stat-remaining">—</div>
+          <div class="stat-sub">Gigabarrels</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div>
+            <div class="chart-card-title">US Crude Oil Production vs. OSM Model</div>
+            <div class="chart-card-desc">Annual production rate (Gb/year). Bars = EIA observed data. Line = Oil Shock Model simulation.</div>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-production" height="280"></canvas></div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--color-observed);"></div>EIA Observed</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--color-production);"></div>OSM Model</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div>
+            <div class="chart-card-title">Cumulative Production</div>
+            <div class="chart-card-desc">Total oil produced since 1900 (Gb). Dashed line marks 2023.</div>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-cumulative" height="200"></canvas></div>
+      </div>
+    </div>
+
+    <!-- TAB: Compartments -->
+    <div class="tab-panel" id="tab-compartments" role="tabpanel">
+      <div class="info-box">
+        <strong>How the model works:</strong> Oil reserves move through four compartments — each governed by an exponential (Markov) decay with mean delay τ.<br>
+        <span class="equation">dF/dt = D(t) − F/τ_f   |   dC/dt = F/τ_f − C/τ_c   |   dP/dt = C/τ_c − P/τ_x   |   Q(t) = P/τ_x</span>
+        Adjust the τ sliders to see how delays shift and broaden the production curve.
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div>
+            <div class="chart-card-title">OSM Compartment States</div>
+            <div class="chart-card-desc">Reserves in each pipeline stage (Gb). Production rate Q(t) = P(t)/τ_x is the model output.</div>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-compartments" height="300"></canvas></div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-line" style="background:var(--color-fallow);"></div>Fallow F(t)</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--color-construction);"></div>Construction C(t)</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--color-producing);"></div>Producing P(t)</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--color-production);border-top:2px dashed var(--color-production);"></div>Production Q(t)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Discovery -->
+    <div class="tab-panel" id="tab-discovery" role="tabpanel">
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div>
+            <div class="chart-card-title">Discovery Input D(t)</div>
+            <div class="chart-card-desc">Sum of logistic pulses representing distinct eras of oil discovery (Gb/year found).</div>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-discovery" height="260"></canvas></div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-line" style="background:var(--color-discovery);"></div>Total Discovery D(t)</div>
+          <div class="legend-item"><div class="legend-line" style="background:#4fc3f7;opacity:0.5;border-top:2px dashed #4fc3f7;"></div>Pulse 1</div>
+          <div class="legend-item"><div class="legend-line" style="background:#ce93d8;opacity:0.5;border-top:2px dashed #ce93d8;"></div>Pulse 2</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div>
+            <div class="chart-card-title">Discovery → Production Delay</div>
+            <div class="chart-card-desc">Comparing discovery rate and resulting production rate — showing the time lag imposed by τ_f + τ_c + τ_x.</div>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-disc-prod" height="240"></canvas></div>
+      </div>
+    </div>
+
+    <!-- TAB: About -->
+    <div class="tab-panel" id="tab-about" role="tabpanel">
+      <div class="about-grid">
+        <div class="about-card">
+          <h3>The Oil Shock Model</h3>
+          <p>The Oil Shock Model (OSM) is a compartmental Markov-chain model that simulates oil production as reserves move through sequential pipeline stages. Developed by Paul Pukite, Dennis Coyne, and Dan Challou in <em>Mathematical GeoEnergy</em> (Wiley, 2019).</p>
+          <p>Each compartment transition is modeled as an exponential delay — the memoryless property of a Markov process. This converts the convolution integral into a tractable system of linear ODEs.</p>
+          <div class="stage-flow">
+            <div class="stage-box" style="color:var(--color-discovery)">Discovery D(t)</div>
+            <span class="stage-arrow">→</span>
+            <div class="stage-box" style="color:var(--color-fallow)">Fallow<br><small>τ_f</small></div>
+            <span class="stage-arrow">→</span>
+            <div class="stage-box" style="color:var(--color-construction)">Construction<br><small>τ_c</small></div>
+            <span class="stage-arrow">→</span>
+            <div class="stage-box" style="color:var(--color-producing)">Production<br><small>τ_x</small></div>
+          </div>
+        </div>
+        <div class="about-card">
+          <h3>Discovery Input</h3>
+          <p>The discovery function D(t) is modeled as a sum of logistic growth pulses — first derivatives of the logistic function, producing bell-shaped curves:</p>
+          <p style="font-family:var(--font-mono);font-size:var(--text-xs);background:var(--color-surface-2);padding:var(--space-3);border-radius:var(--radius-md);color:var(--color-primary);">D(t) = scale·k·e^{-k(t-t₀)} / (1 + e^{-k(t-t₀)})²</p>
+          <p>Two pulses represent the US: the conventional onshore era (~1930–1970) and the offshore + shale era (~2010–2020).</p>
+        </div>
+        <div class="about-card">
+          <h3>Parameter Guide</h3>
+          <p><strong>τ_f (Fallow delay):</strong> Years between discovery and start of development drilling. Typically 3–10 years for conventional oil.</p>
+          <p><strong>τ_c (Construction):</strong> Time to drill wells and build surface infrastructure. Typically 2–6 years.</p>
+          <p><strong>τ_x (Extraction):</strong> Mean time to deplete producing reserves — the inverse of the decline rate. Longer τ_x → more gentle long-term production plateau.</p>
+        </div>
+        <div class="about-card">
+          <h3>Data Source</h3>
+          <p>Observed data from the US Energy Information Administration (EIA), annual crude oil production 1900–2023, in gigabarrels per year (Gb/yr = 10⁹ barrels/yr).</p>
+          <p>Source code available at <a href="https://github.com/pukpr/OilShockModel" target="_blank" rel="noopener noreferrer" style="color:var(--color-primary)">github.com/pukpr/OilShockModel</a>.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<script>
+// ============================================================
+//  OIL SHOCK MODEL — JavaScript Implementation
+//  Mirrors the Python logic in oil_shock_model.py
+// ============================================================
+
+// ----- Observed EIA data -----
+const EIA_DATA = [
+  [1900,0.0637],[1901,0.0691],[1902,0.0683],[1903,0.0768],[1904,0.0836],
+  [1905,0.0943],[1906,0.1020],[1907,0.1169],[1908,0.1086],[1909,0.1188],
+  [1910,0.1295],[1911,0.1364],[1912,0.1500],[1913,0.1604],[1914,0.1659],
+  [1915,0.2011],[1916,0.1870],[1917,0.2129],[1918,0.2261],[1919,0.2284],
+  [1920,0.4430],[1921,0.4723],[1922,0.5577],[1923,0.7327],[1924,0.7138],
+  [1925,0.7636],[1926,0.7710],[1927,0.9010],[1928,0.9010],[1929,1.0071],
+  [1930,0.8981],[1931,0.8511],[1932,0.7853],[1933,0.9059],[1934,0.9085],
+  [1935,0.9980],[1936,1.0990],[1937,1.2770],[1938,1.2143],[1939,1.2642],
+  [1940,1.3541],[1941,1.4022],[1942,1.3841],[1943,1.5054],[1944,1.6745],
+  [1945,1.7136],[1946,1.7338],[1947,1.8566],[1948,2.0203],[1949,1.8413],
+  [1950,1.9736],[1951,2.2474],[1952,2.2897],[1953,2.3577],[1954,2.3140],
+  [1955,2.4846],[1956,2.6165],[1957,2.6166],[1958,2.4490],[1959,2.5742],
+  [1960,2.5752],[1961,2.6236],[1962,2.6768],[1963,2.7529],[1964,2.7861],
+  [1965,2.8481],[1966,3.0277],[1967,3.2117],[1968,3.3286],[1969,3.3715],
+  [1970,3.5171],[1971,3.4536],[1972,3.4556],[1973,3.3603],[1974,3.2027],
+  [1975,3.0567],[1976,2.9768],[1977,3.0094],[1978,3.1782],[1979,3.1199],
+  [1980,3.1461],[1981,3.1284],[1982,3.1571],[1983,3.1706],[1984,3.2496],
+  [1985,3.2742],[1986,3.1677],[1987,3.0474],[1988,2.9792],[1989,2.7759],
+  [1990,2.6846],[1991,2.7073],[1992,2.6243],[1993,2.4997],[1994,2.4625],
+  [1995,2.3940],[1996,2.3662],[1997,2.3534],[1998,2.2821],[1999,2.1466],
+  [2000,2.1303],[2001,2.1222],[2002,2.0974],[2003,2.0726],[2004,1.9830],
+  [2005,1.8900],[2006,1.8622],[2007,1.8484],[2008,1.8109],[2009,2.0118],
+  [2010,2.1393],[2011,2.0783],[2012,2.3684],[2013,2.7194],[2014,3.1664],
+  [2015,3.4404],[2016,3.2397],[2017,3.4072],[2018,3.9970],[2019,4.4775],
+  [2020,4.1290],[2021,4.1000],[2022,4.4500],[2023,4.6900]
+];
+
+// ----- Math helpers -----
+function logisticPulse(t, t0, k, scale) {
+  const z = k * (t - t0);
+  const clampedZ = Math.max(-500, Math.min(500, z));
+  const ez = Math.exp(-clampedZ);
+  const sig = ez / Math.pow(1 + ez, 2);
+  return scale * k * sig;
+}
+
+function discoveryRate(t, pulses) {
+  return pulses.reduce((sum, [t0, k, scale]) => sum + logisticPulse(t, t0, k, scale), 0);
+}
+
+// Simple 4th-order Runge-Kutta ODE integrator
+function runOSM(tArr, pulses, tau_f, tau_c, tau_x) {
+  const n = tArr.length;
+  const F = new Float64Array(n);
+  const C = new Float64Array(n);
+  const P = new Float64Array(n);
+  const D = new Float64Array(n);
+
+  for (let i = 0; i < n; i++) D[i] = discoveryRate(tArr[i], pulses);
+
+  let f = 0, c = 0, p = 0;
+  F[0] = f; C[0] = c; P[0] = p;
+
+  for (let i = 0; i < n - 1; i++) {
+    const dt = tArr[i+1] - tArr[i];
+    const t  = tArr[i];
+
+    // RK4 derivatives — discovery linearly interpolated
+    const dFdt = (fi, ci, pi, ti) => {
+      const d = discoveryRate(ti, pulses);
+      return [d - fi/tau_f, fi/tau_f - ci/tau_c, ci/tau_c - pi/tau_x];
+    };
+
+    const [k1f, k1c, k1p] = dFdt(f, c, p, t);
+    const [k2f, k2c, k2p] = dFdt(f+dt/2*k1f, c+dt/2*k1c, p+dt/2*k1p, t+dt/2);
+    const [k3f, k3c, k3p] = dFdt(f+dt/2*k2f, c+dt/2*k2c, p+dt/2*k2p, t+dt/2);
+    const [k4f, k4c, k4p] = dFdt(f+dt*k3f, c+dt*k3c, p+dt*k3p, t+dt);
+
+    f += dt/6*(k1f+2*k2f+2*k3f+k4f);
+    c += dt/6*(k1c+2*k2c+2*k3c+k4c);
+    p += dt/6*(k1p+2*k2p+2*k3p+k4p);
+    if (f < 0) f = 0;
+    if (c < 0) c = 0;
+    if (p < 0) p = 0;
+
+    F[i+1] = f; C[i+1] = c; P[i+1] = p;
+  }
+
+  const production = P.map(pi => pi / tau_x);
+  // Cumulative via trapezoid
+  const cumulative = new Float64Array(n);
+  for (let i = 1; i < n; i++) {
+    const dt = tArr[i] - tArr[i-1];
+    cumulative[i] = cumulative[i-1] + 0.5*(production[i-1]+production[i])*dt;
+  }
+
+  return { D, F, C, P, production, cumulative, t: tArr };
+}
+
+// ----- State -----
+const DEFAULTS = {
+  tauf: 5, tauc: 3, taux: 30,
+  p1t0: 1945, p1k: 0.12, p1scale: 200,
+  p2t0: 2008, p2k: 0.45, p2scale: 150,
+  yrStart: 1900, yrEnd: 2060
+};
+
+let state = {...DEFAULTS};
+
+// ----- Build sim time array -----
+function simTimeArray() {
+  const start = Math.min(state.yrStart, 1850);
+  const end   = Math.max(state.yrEnd, 2100);
+  const n = (end - start) * 4 + 1; // quarterly resolution
+  const arr = new Float64Array(n);
+  for (let i = 0; i < n; i++) arr[i] = start + i / 4;
+  return arr;
+}
+
+// ----- Chart.js setup -----
+Chart.defaults.font.family = "'Space Grotesk', sans-serif";
+Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--color-text-muted').trim();
+
+function getCSSVar(v) {
+  return getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+}
+
+const chartDefaults = () => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: { mode: 'index', intersect: false },
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: getCSSVar('--color-surface-3') || '#22252c',
+      borderColor: getCSSVar('--color-border') || 'rgba(255,255,255,0.08)',
+      borderWidth: 1,
+      titleColor: getCSSVar('--color-text') || '#e8eaf0',
+      bodyColor: getCSSVar('--color-text-muted') || '#8a8fa8',
+      padding: 10,
+      cornerRadius: 8,
+      callbacks: {
+        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(3) ?? '—'}`
+      }
+    }
+  },
+  scales: {
+    x: {
+      grid: { color: getCSSVar('--color-divider') || 'rgba(255,255,255,0.05)', drawBorder: false },
+      ticks: { color: getCSSVar('--color-text-faint') || '#4a4e63', maxTicksLimit: 12 }
+    },
+    y: {
+      grid: { color: getCSSVar('--color-divider') || 'rgba(255,255,255,0.05)', drawBorder: false },
+      ticks: { color: getCSSVar('--color-text-faint') || '#4a4e63' },
+      beginAtZero: true
+    }
+  }
+});
+
+// Create charts
+const charts = {};
+
+function makeChart(id, config) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return null;
+  ctx.parentElement.style.height = config.height || '280px';
+  return new Chart(ctx, config);
+}
+
+// Production chart
+charts.production = makeChart('chart-production', {
+  ...chartDefaults(),
+  type: 'bar',
+  height: '280px',
+  data: {
+    labels: [],
+    datasets: [
+      { label: 'EIA Observed', data: [], backgroundColor: 'rgba(120,140,200,0.45)', borderColor: 'rgba(120,140,200,0.7)', borderWidth: 0.5, barPercentage: 0.85 },
+      { label: 'OSM Model',    data: [], type: 'line', borderColor: '#ef5350', borderWidth: 2.5, pointRadius: 0, fill: false, tension: 0.3 }
+    ]
+  }
+});
+
+charts.cumulative = makeChart('chart-cumulative', {
+  ...chartDefaults(),
+  type: 'line',
+  height: '200px',
+  data: {
+    labels: [],
+    datasets: [
+      { label: 'Cumulative Production', data: [], borderColor: '#f0a500', backgroundColor: 'rgba(240,165,0,0.08)', fill: true, borderWidth: 2, pointRadius: 0, tension: 0.3 }
+    ]
+  },
+  options: {
+    ...chartDefaults(),
+    plugins: { ...chartDefaults().plugins, annotation: {} }
+  }
+});
+
+charts.compartments = makeChart('chart-compartments', {
+  ...chartDefaults(),
+  type: 'line',
+  height: '300px',
+  data: {
+    labels: [],
+    datasets: [
+      { label: 'Fallow F(t)',       data: [], borderColor: '#ffd54f', borderWidth: 2, pointRadius: 0, tension: 0.3 },
+      { label: 'Construction C(t)', data: [], borderColor: '#ce93d8', borderWidth: 2, pointRadius: 0, tension: 0.3 },
+      { label: 'Producing P(t)',    data: [], borderColor: '#a5d6a7', borderWidth: 2, pointRadius: 0, tension: 0.3 },
+      { label: 'Production Q(t)',   data: [], borderColor: '#ef5350', borderWidth: 2, borderDash: [6,3], pointRadius: 0, tension: 0.3 }
+    ]
+  }
+});
+
+charts.discovery = makeChart('chart-discovery', {
+  ...chartDefaults(),
+  type: 'line',
+  height: '260px',
+  data: {
+    labels: [],
+    datasets: [
+      { label: 'Total D(t)',  data: [], borderColor: '#4fc3f7', borderWidth: 2.5, pointRadius: 0, tension: 0.3, fill: false },
+      { label: 'Pulse 1',    data: [], borderColor: '#4fc3f7', borderDash: [4,4], borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false, borderOpacity: 0.5 },
+      { label: 'Pulse 2',    data: [], borderColor: '#ce93d8', borderDash: [4,4], borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false }
+    ]
+  }
+});
+
+charts.discProd = makeChart('chart-disc-prod', {
+  ...chartDefaults(),
+  type: 'line',
+  height: '240px',
+  data: {
+    labels: [],
+    datasets: [
+      { label: 'Discovery D(t)',    data: [], borderColor: '#4fc3f7', borderWidth: 2, pointRadius: 0, tension: 0.3 },
+      { label: 'Production Q(t)',   data: [], borderColor: '#ef5350', borderWidth: 2, pointRadius: 0, tension: 0.3 }
+    ]
+  }
+});
+
+// ----- Slider → label bindings -----
+const sliders = {
+  'tau-f':    { valId: 'val-tauf',    key: 'tauf',    fmt: v => v.toFixed(1) },
+  'tau-c':    { valId: 'val-tauc',    key: 'tauc',    fmt: v => v.toFixed(1) },
+  'tau-x':    { valId: 'val-taux',    key: 'taux',    fmt: v => v.toFixed(1) },
+  'p1-t0':    { valId: 'val-p1-t0',   key: 'p1t0',   fmt: v => Math.round(v) },
+  'p1-k':     { valId: 'val-p1-k',    key: 'p1k',    fmt: v => v.toFixed(2) },
+  'p1-scale': { valId: 'val-p1-scale',key: 'p1scale', fmt: v => Math.round(v) },
+  'p2-t0':    { valId: 'val-p2-t0',   key: 'p2t0',   fmt: v => Math.round(v) },
+  'p2-k':     { valId: 'val-p2-k',    key: 'p2k',    fmt: v => v.toFixed(2) },
+  'p2-scale': { valId: 'val-p2-scale',key: 'p2scale', fmt: v => Math.round(v) },
+  'yr-start': { valId: 'val-yr-start',key: 'yrStart', fmt: v => Math.round(v) },
+  'yr-end':   { valId: 'val-yr-end',  key: 'yrEnd',   fmt: v => Math.round(v) }
+};
+
+Object.entries(sliders).forEach(([id, cfg]) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    const v = parseFloat(el.value);
+    state[cfg.key] = v;
+    document.getElementById(cfg.valId).textContent = cfg.fmt(v);
+    scheduleUpdate();
+  });
+});
+
+// ----- Debounced update -----
+let updateTimer = null;
+function scheduleUpdate() {
+  clearTimeout(updateTimer);
+  updateTimer = setTimeout(updateCharts, 60);
+}
+
+// ----- Main update function -----
+function updateCharts() {
+  const pulses = [
+    [state.p1t0, state.p1k, state.p1scale],
+    [state.p2t0, state.p2k, state.p2scale]
+  ];
+
+  const tArr = simTimeArray();
+  const res  = runOSM(tArr, pulses, state.tauf, state.tauc, state.taux);
+
+  // Filter to view range
+  const viewStart = state.yrStart;
+  const viewEnd   = state.yrEnd;
+  const idxStart  = tArr.findIndex(t => t >= viewStart);
+  const idxEnd    = tArr.findIndex(t => t > viewEnd);
+  const iS = idxStart < 0 ? 0 : idxStart;
+  const iE = idxEnd < 0 ? tArr.length : idxEnd;
+
+  const tView = Array.from(tArr.slice(iS, iE)).map(t => t.toFixed(2));
+  const prodView  = Array.from(res.production.slice(iS, iE));
+  const cumView   = Array.from(res.cumulative.slice(iS, iE));
+  const FView     = Array.from(res.F.slice(iS, iE));
+  const CView     = Array.from(res.C.slice(iS, iE));
+  const PView     = Array.from(res.P.slice(iS, iE));
+  const DView     = Array.from(res.D.slice(iS, iE));
+
+  // Discovery pulse components
+  const d1View = tArr.slice(iS, iE).map(t => logisticPulse(t, state.p1t0, state.p1k, state.p1scale));
+  const d2View = tArr.slice(iS, iE).map(t => logisticPulse(t, state.p2t0, state.p2k, state.p2scale));
+
+  // Observed bars (yearly, within view)
+  const obsInView = EIA_DATA.filter(([y]) => y >= viewStart && y <= viewEnd);
+  const obsLabels = obsInView.map(([y]) => y.toString());
+  const obsVals   = obsInView.map(([,v]) => v);
+
+  // Stats
+  let peakVal = 0, peakIdx = 0;
+  res.production.forEach((v, i) => { if (v > peakVal) { peakVal = v; peakIdx = i; } });
+  const peakYear = tArr[peakIdx];
+  const cum2023 = res.cumulative[tArr.findIndex(t => t >= 2023) ?? (tArr.length-1)];
+  const cum2060 = res.cumulative[tArr.findIndex(t => t >= 2060) ?? (tArr.length-1)];
+  const cumFrom2024 = cum2060 - cum2023;
+
+  document.getElementById('stat-peak-prod').textContent = peakVal.toFixed(2);
+  document.getElementById('stat-peak-year').textContent = 'Gb/year';
+  document.getElementById('stat-peak-yr').textContent   = Math.round(peakYear);
+  document.getElementById('stat-cumulative').textContent = cum2023.toFixed(1);
+  document.getElementById('stat-remaining').textContent  = Math.max(0, cumFrom2024).toFixed(1);
+
+  // ----- Update production chart -----
+  // For bar chart we use yearly labels; overlay line uses full sim grid
+  charts.production.data.labels = tView;
+  // EIA bars as sparse data
+  const eiaMap = new Map(obsInView.map(([y,v]) => [y.toFixed(2), v]));
+  charts.production.data.datasets[0].data = tView.map(l => eiaMap.get(l) ?? null);
+  charts.production.data.datasets[1].data = prodView;
+  charts.production.update('none');
+
+  // ----- Cumulative chart -----
+  charts.cumulative.data.labels = tView;
+  charts.cumulative.data.datasets[0].data = cumView;
+  charts.cumulative.update('none');
+
+  // ----- Compartments chart -----
+  charts.compartments.data.labels = tView;
+  charts.compartments.data.datasets[0].data = FView;
+  charts.compartments.data.datasets[1].data = CView;
+  charts.compartments.data.datasets[2].data = PView;
+  charts.compartments.data.datasets[3].data = prodView;
+  charts.compartments.update('none');
+
+  // ----- Discovery chart -----
+  charts.discovery.data.labels = tView;
+  charts.discovery.data.datasets[0].data = DView;
+  charts.discovery.data.datasets[1].data = d1View;
+  charts.discovery.data.datasets[2].data = d2View;
+  charts.discovery.update('none');
+
+  // ----- Disc vs prod chart -----
+  charts.discProd.data.labels = tView;
+  charts.discProd.data.datasets[0].data = DView;
+  charts.discProd.data.datasets[1].data = prodView;
+  charts.discProd.update('none');
+}
+
+// ----- Tabs -----
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected','true');
+    const panel = document.getElementById('tab-' + target);
+    if (panel) panel.classList.add('active');
+    // Resize charts on tab switch
+    setTimeout(() => { Object.values(charts).forEach(c => c && c.resize()); }, 50);
+  });
+});
+
+// ----- Reset -----
+document.getElementById('btn-reset').addEventListener('click', () => {
+  state = {...DEFAULTS};
+  Object.entries(sliders).forEach(([id, cfg]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = state[cfg.key];
+    document.getElementById(cfg.valId).textContent = cfg.fmt(state[cfg.key]);
+  });
+  updateCharts();
+});
+
+// ----- Export CSV -----
+document.getElementById('btn-export').addEventListener('click', () => {
+  const pulses = [
+    [state.p1t0, state.p1k, state.p1scale],
+    [state.p2t0, state.p2k, state.p2scale]
+  ];
+  const tArr = simTimeArray();
+  const res  = runOSM(tArr, pulses, state.tauf, state.tauc, state.taux);
+  let csv = 'year,discovery_Gb_yr,fallow_Gb,construction_Gb,producing_Gb,production_Gb_yr,cumulative_Gb\n';
+  for (let i = 0; i < tArr.length; i++) {
+    csv += `${tArr[i].toFixed(2)},${res.D[i].toFixed(6)},${res.F[i].toFixed(6)},${res.C[i].toFixed(6)},${res.P[i].toFixed(6)},${res.production[i].toFixed(6)},${res.cumulative[i].toFixed(6)}\n`;
+  }
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'oil_shock_model_output.csv';
+  a.click();
+});
+
+// ----- Theme toggle -----
+(function(){
+  const btn = document.querySelector('[data-theme-toggle]');
+  const root = document.documentElement;
+  let dark = true;
+  btn.addEventListener('click', () => {
+    dark = !dark;
+    root.setAttribute('data-theme', dark ? 'dark' : 'light');
+    btn.innerHTML = dark
+      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+    setTimeout(() => updateCharts(), 100);
+  });
+})();
+
+// ----- Initial render -----
+updateCharts();
+</script>
+</body>
+</html>
